@@ -87,30 +87,11 @@ def chat(request: ChatRequest):
                 "model": MODEL
             }
     
-    # Fallback: respuestas basadas en palabras clave
-    user_message = request.message.lower()
-    
-    if "hola" in user_message or "hello" in user_message or "hi" in user_message:
-        response = "Hi! I am a demo chatbot with Ollama. How can I help you?"
-    elif "python" in user_message or "django" in user_message:
-        response = "Python is a very versatile language. Django is excellent for full web apps, and FastAPI is perfect for fast APIs."
-    elif "javascript" in user_message or "react" in user_message:
-        response = "JavaScript and React are ideal for frontend. Next.js adds Server-Side Rendering for better SEO."
-    elif "ai" in user_message or "llm" in user_message:
-        response = "This chatbot uses Ollama (local LLM). It is private and fast. Perfect for demos and limited VPS."
-    elif "proyecto" in user_message or "project" in user_message or "portfolio" in user_message:
-        response = "This project demonstrates my skills with FastAPI, React and production deployment."
-    elif "quien" in user_message or "name" in user_message:
-        response = "I am a demo chatbot for your Upwork portfolio. Contact me for projects!"
-    elif "precio" in user_message or "cost" in user_message or "rate" in user_message:
-        response = "For custom projects, I can offer you a budget tailored to your needs."
-    else:
-        response = f"Got it: '{request.message}'. If Ollama were connected, I would respond with real AI. For now I am a smart placeholder 😊"
-    
+    # Fallback: solo un mensaje si Ollama no está disponible
     return {
-        "response": response,
+        "response": "Ollama is not available. Please start Ollama locally.",
         "user_message": request.message,
-        "model": "fallback"
+        "model": "offline"
     }
 
 # Endpoint de streaming (demo)
