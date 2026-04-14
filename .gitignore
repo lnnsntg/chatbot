@@ -12,6 +12,9 @@ ENV/
 dist/
 build/
 
+# Ruff
+.ruff_cache/
+
 # IDE
 .idea/
 .vscode/
