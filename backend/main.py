@@ -9,21 +9,15 @@ from pydantic import BaseModel
 from typing import List, Optional
 import requests
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="AI Chatbot API")
 
-# CORS para el frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Permitir todas las fuentes para desarrollo
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Configuración de Ollama
-OLLAMA_URL = "http://localhost:11434"
-MODEL = "llama3.2:1b"  # Modelo ligero para VPS
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+MODEL = os.getenv("MODEL", "llama3.2:1b")
 
 
 # Modelo del mensaje

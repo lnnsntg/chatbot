@@ -1,4 +1,4 @@
-import Chat from './main'
+import Chat from './Chat'
 import './App.css'
 
 function App() {
