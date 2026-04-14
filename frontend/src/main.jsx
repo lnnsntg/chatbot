@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client'
-import App from './App'
+import Chat from './Chat'
 
 const root = createRoot(document.getElementById('root'))
-root.render(<App />)
+root.render(<Chat />)
