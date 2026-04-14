@@ -1,6 +1,6 @@
 # Chatbot
 
- chatbot con frontend React y backend FastAPI.
+ Chatbot con frontend React y backend FastAPI. Desplegado en **chat-bot-ports.duckdns.org**.
 
 ## Estructura
 
