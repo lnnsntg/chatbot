@@ -25,14 +25,17 @@ app.add_middleware(
 OLLAMA_URL = "http://localhost:11434"
 MODEL = "llama3.2:1b"  # Modelo ligero para VPS
 
+
 # Modelo del mensaje
 class ChatMessage(BaseModel):
     role: str  # "user" or "assistant"
     content: str
 
+
 class ChatRequest(BaseModel):
     message: str
     history: Optional[List[ChatMessage]] = []
+
 
 def check_ollama():
     """Verifica si Ollama está disponible"""
@@ -42,37 +45,41 @@ def check_ollama():
     except:
         return False
 
+
 def get_ollama_response(prompt: str) -> str:
     """Obtiene respuesta de Ollama"""
     try:
         response = requests.post(
-            f"{OLLAMA_URL}/api/generate",
+            f"{OLLAMA_URL}/api/chat",
             json={
                 "model": MODEL,
-                "prompt": prompt,
-                "stream": False
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
             },
-            timeout=30
+            timeout=30,
         )
         if response.status_code == 200:
-            return response.json().get("response", "")
+            return response.json().get("message", {}).get("content", "")
     except Exception as e:
         print(f"Ollama error: {e}")
     return None
+
 
 # Ruta de health
 @app.get("/")
 def root():
     ollama_available = check_ollama()
     return {
-        "status": "ok", 
+        "status": "ok",
         "message": "AI Chatbot API running",
-        "ollama": ollama_available
+        "ollama": ollama_available,
     }
+
 
 @app.get("/health")
 def health():
     return {"status": "healthy", "ollama": check_ollama()}
+
 
 # Endpoint de chat
 @app.post("/chat")
@@ -84,15 +91,16 @@ def chat(request: ChatRequest):
             return {
                 "response": ollama_response,
                 "user_message": request.message,
-                "model": MODEL
+                "model": MODEL,
             }
-    
+
     # Fallback: solo un mensaje si Ollama no está disponible
     return {
         "response": "Ollama is not available. Please start Ollama locally.",
         "user_message": request.message,
-        "model": "offline"
+        "model": "offline",
     }
+
 
 # Endpoint de streaming (demo)
 @app.get("/api/info")
@@ -102,6 +110,5 @@ def info():
         "tech_stack": ["FastAPI", "React", "Ollama"],
         "features": ["Chat interactivo", "Historial", "LLM local", "Despliegue"],
         "model": MODEL,
-        "ollama_available": check_ollama()
+        "ollama_available": check_ollama(),
     }
-
