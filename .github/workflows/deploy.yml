@@ -30,7 +30,7 @@ jobs:
               passphrase: ${{ secrets.PASSPHRASE }}
               port: ${{ secrets.SSH_PORT}}
               script: |
-                  cd /var/www/portfolio
+                  cd /var/www/chatbot
                   git pull origin main
       - name: Sync Python deps (si cambió backend)
         if: steps.changes.outputs.backend == 'true'
