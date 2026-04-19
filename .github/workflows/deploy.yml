@@ -26,50 +26,50 @@ jobs:
       - name: Pull en el VPS
         uses: appleboy/ssh-action@v1
         with:
-            host: ${{ secrets.SSH_HOST }}
-            username: ${{ secrets.SSH_USER }}
-            key: ${{ secrets.SSH_KEY }}
-            passphrase: ${{ secrets.PASSPHRASE }}
-            port: ${{ secrets.SSH_PORT}}
-            script: |
-                cd /var/www/chatbot
-                git pull origin main
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          port: ${{ secrets.SSH_PORT}}
+          script: |
+            cd /var/www/chatbot
+            git pull origin main
       - name: Sync Python deps (si cambió backend)
         if: steps.changes.outputs.backend == 'true'
         uses: appleboy/ssh-action@v1
         with:
-            host: ${{ secrets.SSH_HOST }}
-            username: ${{ secrets.SSH_USER }}
-            key: ${{ secrets.SSH_KEY }}
-            passphrase: ${{ secrets.PASSPHRASE }}
-            port: ${{ secrets.SSH_PORT}}
-            script: |
-                cd /var/www/chatbot/backend
-                uv sync --frozen
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          port: ${{ secrets.SSH_PORT}}
+          script: |
+            cd /var/www/chatbot/backend
+            uv sync --frozen
 
       - name: Build frontend (si cambió frontend)
         if: steps.changes.outputs.frontend == 'true'
         uses: appleboy/ssh-action@v1
         with:
-            host: ${{ secrets.SSH_HOST }}
-            username: ${{ secrets.SSH_USER }}
-            key: ${{ secrets.SSH_KEY }}
-            passphrase: ${{ secrets.PASSPHRASE }}
-            port: ${{ secrets.SSH_PORT}}
-            script: |
-                cd /var/www/chatbot/frontend
-                npm ci
-                npm run build 
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          port: ${{ secrets.SSH_PORT}}
+          script: |
+            cd /var/www/chatbot/frontend
+            npm ci
+            npm run build 
       - name: Restart services
         uses: appleboy/ssh-action@v1
         with:
-            host: ${{ secrets.SSH_HOST }}
-            username: ${{ secrets.SSH_USER }}
-            key: ${{ secrets.SSH_KEY }}
-            passphrase: ${{ secrets.PASSPHRASE }}
-            port: ${{ secrets.SSH_PORT}}
-            script: |
-                sudo systemctl restart chatbot-backend.service
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          port: ${{ secrets.SSH_PORT}}
+          script: |+
+            sudo systemctl restart chatbot-backend.service
 
 
-                  
+              
