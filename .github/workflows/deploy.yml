@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
@@ -15,23 +17,23 @@ jobs:
         with:
           fetch-depth: 2 # necesario para comparar HEAD~1 vs HEAD
 
-      - name: Dectectar cambios
+      - name: Detectar cambios
         id: changes
         run: |
           echo "backend=$(git diff HEAD~1 HEAD --name-only | grep -qE 'pyproject.toml|uv.lock' && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "frontend=$(git diff HEAD~1 HEAD --name-only | grep -q '^frontend/' && echo true || echo false)" >> $GITHUB_OUTPUT 
+          echo "frontend=$(git diff HEAD~1 HEAD --name-only | grep -q '^frontend/' && echo true || echo false)" >> $GITHUB_OUTPUT
 
-          name: Pull en el VPS
-          uses: appleboy/ssh-action@v1
-          with:
-              host: ${{ secrets.SSH_HOST }}
-              username: ${{ secrets.SSH_USER }}
-              key: ${{ secrets.SSH_KEY }}
-              passphrase: ${{ secrets.PASSPHRASE }}
-              port: ${{ secrets.SSH_PORT}}
-              script: |
-                  cd /var/www/chatbot
-                  git pull origin main
+      - name: Pull en el VPS
+        uses: appleboy/ssh-action@v1
+        with:
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_KEY }}
+            passphrase: ${{ secrets.PASSPHRASE }}
+            port: ${{ secrets.SSH_PORT}}
+            script: |
+                cd /var/www/chatbot
+                git pull origin main
       - name: Sync Python deps (si cambió backend)
         if: steps.changes.outputs.backend == 'true'
         uses: appleboy/ssh-action@v1
