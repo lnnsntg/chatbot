@@ -8,8 +8,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout code
@@ -34,6 +32,7 @@ jobs:
           script: |
             cd /var/www/chatbot
             git pull origin main
+
       - name: Sync Python deps (si cambió backend)
         if: steps.changes.outputs.backend == 'true'
         uses: appleboy/ssh-action@v1
@@ -59,7 +58,8 @@ jobs:
           script: |
             cd /var/www/chatbot/frontend
             npm ci
-            npm run build 
+            npm run build
+
       - name: Restart services
         uses: appleboy/ssh-action@v1
         with:
@@ -69,7 +69,7 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           port: ${{ secrets.SSH_PORT}}
           script: |+
-            sudo systemctl restart chatbot-backend.service
+            systemctl restart chatbot-backend.service
 
 
               
