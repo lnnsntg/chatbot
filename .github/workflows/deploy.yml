@@ -69,7 +69,7 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           port: ${{ secrets.SSH_PORT}}
           script: |+
-            systemctl restart chatbot-backend.service
+            systemctl restart chatbot.service
             
 
 
