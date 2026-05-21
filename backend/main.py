@@ -27,6 +27,11 @@ app.add_middleware(
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODEL = os.getenv("MODEL", "llama3.2:1b")
 
+# Cloud LLM config (GROQ / OpenAI-compatible)
+CLOUD_API_KEY = os.getenv("CLOUD_API_KEY", "")
+CLOUD_MODEL = os.getenv("CLOUD_MODEL", "llama-3.3-70b-versatile")
+CLOUD_API_URL = os.getenv("CLOUD_API_URL", "https://api.groq.com/openai/v1/chat/completions")
+
 
 # Modelo del mensaje
 class ChatMessage(BaseModel):
@@ -46,6 +51,31 @@ def check_ollama():
         return r.status_code == 200
     except:
         return False
+
+
+def get_cloud_response(prompt: str) -> str:
+    """Obtiene respuesta de API cloud (GROQ/OpenAI)"""
+    if not CLOUD_API_KEY:
+        return None
+    try:
+        response = requests.post(
+            CLOUD_API_URL,
+            json={
+                "model": CLOUD_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 1024,
+            },
+            headers={
+                "Authorization": f"Bearer {CLOUD_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            timeout=30,
+        )
+        if response.status_code == 200:
+            return response.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"Cloud API error: {e}")
+    return None
 
 
 def get_ollama_response(prompt: str) -> str:
@@ -86,7 +116,16 @@ def health():
 # Endpoint de chat
 @app.post("/chat")
 def chat(request: ChatRequest):
-    # Intentar usar Ollama si está disponible
+    # 1. Cloud API first (faster, better quality)
+    cloud_response = get_cloud_response(request.message)
+    if cloud_response:
+        return {
+            "response": cloud_response,
+            "user_message": request.message,
+            "model": CLOUD_MODEL,
+        }
+
+    # 2. Fallback to local Ollama
     if check_ollama():
         ollama_response = get_ollama_response(request.message)
         if ollama_response:
@@ -96,9 +135,9 @@ def chat(request: ChatRequest):
                 "model": MODEL,
             }
 
-    # Fallback: solo un mensaje si Ollama no está disponible
+    # 3. Offline
     return {
-        "response": "Ollama is not available. Please start Ollama locally.",
+        "response": "AI service is not available. Please try again later.",
         "user_message": request.message,
         "model": "offline",
     }
@@ -109,8 +148,8 @@ def chat(request: ChatRequest):
 def info():
     return {
         "name": "AI Chatbot Portfolio",
-        "tech_stack": ["FastAPI", "React", "Ollama"],
-        "features": ["Chat interactivo", "Historial", "LLM local", "Despliegue"],
-        "model": MODEL,
+        "tech_stack": ["FastAPI", "React", "Ollama + Cloud LLM"],
+        "features": ["Chat interactivo", "Historial", "LLM cloud + local", "Despliegue"],
+        "model": CLOUD_MODEL if CLOUD_API_KEY else MODEL,
         "ollama_available": check_ollama(),
     }

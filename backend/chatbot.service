@@ -5,11 +5,11 @@ After=network.target
 [Service]
 Type=notify
 User=root
-WorkingDirectory=/var/www/portfolio/backend
-ExecStart=/var/www/portfolio/backend/.venv/bin/gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+WorkingDirectory=/var/www/chatbot/backend
+ExecStart=/var/www/chatbot/backend/.venv/bin/gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 Restart=always
 RestartSec=10
-Environment=PYTHONPATH=/var/www/portfolio/backend
+Environment=PYTHONPATH=/var/www/chatbot/backend
 
 [Install]
 WantedBy=multi-user.target
