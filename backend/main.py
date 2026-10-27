@@ -53,17 +53,30 @@ def get_cloud_response(prompt: str) -> Optional[str]:
             json={
                 "model": CLOUD_MODEL,
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 1024,
+                "max_tokens": 2048,
             },
             headers={
                 "Authorization": f"Bearer {CLOUD_API_KEY}",
                 "Content-Type": "application/json",
                 "x-opencode-session": CLOUD_SESSION,
             },
-            timeout=30,
+            # 2048 tokens con razonamiento pueden pasar de 30s; nginx ya espera 120s
+            timeout=90,
         )
         if response.status_code == 200:
-            return response.json()["choices"][0]["message"]["content"]
+            data = response.json()
+            choice = data["choices"][0]
+            content = (choice.get("message") or {}).get("content") or ""
+            if not content.strip():
+                # El modelo puede gastar todo el presupuesto en reasoning_content y
+                # devolver content vacio: sin este log el fallo era mudo (503 sin rastro).
+                print(
+                    "Cloud API error: respuesta sin contenido "
+                    f"(finish_reason={choice.get('finish_reason')}, "
+                    f"usage={data.get('usage')})"
+                )
+                return None
+            return content
         print(f"Cloud API error: {response.status_code} {response.text[:300]}")
     except Exception as e:
         print(f"Cloud API error: {e}")
