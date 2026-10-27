@@ -28,6 +28,7 @@ function Chat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg })
       })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const data = await response.json()
       setMessages(m => [...m, { role: 'assistant', content: data.response }])
     } catch (err) {
@@ -44,7 +45,7 @@ function Chat() {
     <div className="chat-container">
       <header className="chat-header">
         <h1>🤖 AI Chat Demo</h1>
-        <p>Powered by Ollama (local)</p>
+        <p>Powered by DeepSeek V4.1 Flash</p>
       </header>
 
       <div className="messages">
