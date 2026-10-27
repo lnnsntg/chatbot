@@ -1,14 +1,14 @@
 [Unit]
 Description=Chatbot Backend API
-After=network.target chatbot.socket
-Requires=chatbot.socket
+After=network.target
 
 [Service]
 Type=notify
 User=root
 Group=www-data
+UMask=0007
 WorkingDirectory=/var/www/chatbot/backend
-ExecStart=/var/www/chatbot/backend/.venv/bin/gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind fd://3
+ExecStart=/var/www/chatbot/backend/.venv/bin/gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind unix:/run/chatbot.sock --umask 0007
 Restart=always
 RestartSec=10
 Environment=PYTHONPATH=/var/www/chatbot/backend
