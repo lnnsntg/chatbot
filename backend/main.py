@@ -27,10 +27,10 @@ app.add_middleware(
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODEL = os.getenv("MODEL", "llama3.2:1b")
 
-# Cloud LLM config (GROQ / OpenAI-compatible)
+# Cloud LLM config (OpenCode Zen Go, OpenAI-compatible)
 CLOUD_API_KEY = os.getenv("CLOUD_API_KEY", "")
-CLOUD_MODEL = os.getenv("CLOUD_MODEL", "llama-3.3-70b-versatile")
-CLOUD_API_URL = os.getenv("CLOUD_API_URL", "https://api.groq.com/openai/v1/chat/completions")
+CLOUD_MODEL = os.getenv("CLOUD_MODEL", "deepseek-v4.1-flash")
+CLOUD_API_URL = os.getenv("CLOUD_API_URL", "https://opencode.ai/zen/go/v1/chat/completions")
 
 
 # Modelo del mensaje
