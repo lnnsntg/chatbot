@@ -21,7 +21,7 @@ jobs:
           changed=$(git diff --name-only HEAD~1 HEAD)
           echo "deps=$(echo "$changed" | grep -qE '^backend/(pyproject\.toml|uv\.lock)$' && echo true || echo false)" >> $GITHUB_OUTPUT
           echo "backend=$(echo "$changed" | grep -qE '^backend/.*\.py$' && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "unit=$(echo "$changed" | grep -qE '^backend/chatbot\.service$' && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "unit=$(echo "$changed" | grep -qE '^backend/chatbot\.(service|socket)$' && echo true || echo false)" >> $GITHUB_OUTPUT
           echo "frontend=$(echo "$changed" | grep -q '^frontend/' && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Pull en el VPS
@@ -47,7 +47,9 @@ jobs:
           port: ${{ secrets.SSH_PORT}}
           script: |
             install -m 644 /var/www/chatbot/backend/chatbot.service /etc/systemd/system/chatbot.service
+            install -m 644 /var/www/chatbot/backend/chatbot.socket /etc/systemd/system/chatbot.socket
             systemctl daemon-reload
+            systemctl enable chatbot.socket chatbot.service
 
       - name: Sync Python deps (si cambió backend)
         if: steps.changes.outputs.deps == 'true'
@@ -86,6 +88,7 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           port: ${{ secrets.SSH_PORT}}
           script: |
+            systemctl restart chatbot.socket
             systemctl restart chatbot.service
 
       - name: Health check (si se reinició)

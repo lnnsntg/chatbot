@@ -26,10 +26,11 @@
 
 ## Servicio y permisos
 
-- Unit `chatbot.service`: `User=root`, `Group=www-data`, `UMask=0007`.
-- Socket `/run/chatbot.sock`: `root:www-data` con modo `770`. El umask hay que pasárselo a gunicorn (`--umask 0007`): gunicorn hace su propio `os.umask(conf.umask)` al crear el socket y **sobreescribe** el `UMask` de systemd (default `0` = `777`).
-- nginx corre como `www-data`, así que entra en el socket por grupo. Ningún otro usuario local puede llamar a la API saltándose nginx.
+- El socket lo crea **systemd**, no gunicorn: `chatbot.socket` con `ListenStream=/run/chatbot.sock`, `SocketUser=root`, `SocketGroup=www-data`, `SocketMode=0660`.
+- `chatbot.service` recibe el fd con `--bind fd://3` (`Requires=chatbot.socket`), así que no crea ni chmodea el socket. Sin `umask` en ningún lado.
+- `chatbot.service`: `User=root`, `Group=www-data`.
 - `.env` en el servidor: `600 root:root`, no está en git (`.gitignore`).
+- nginx corre como `www-data` y entra en el socket por grupo. Ningún otro usuario local puede llamar a la API saltándose nginx.
 - nginx solo sirve `frontend/dist`: el backend, `.env` y el `.git` no son accesibles por HTTP (probado: `/.env`, `/backend/.env`, `/.git/config` devuelven el `index.html` del SPA).
 
 ## Deploy
