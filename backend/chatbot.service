@@ -5,6 +5,8 @@ After=network.target
 [Service]
 Type=notify
 User=root
+Group=www-data
+UMask=0007
 WorkingDirectory=/var/www/chatbot/backend
 ExecStart=/var/www/chatbot/backend/.venv/bin/gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind unix:/run/chatbot.sock
 Restart=always
