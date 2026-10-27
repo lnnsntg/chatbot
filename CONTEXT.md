@@ -7,17 +7,19 @@
 
 ## Proyecto
 - Ubicación local: /home/lenin/chatbot
-- Backend: FastAPI (puerto 8000)
-- Frontend: React/Vite (puerto 5173)
-- Dominio: chat-bot-ports.duckdns.org
+- Ubicación en el servidor: /var/www/chatbot
+- Backend: FastAPI, gunicorn + UvicornWorker en `unix:/run/chatbot.sock`
+- Frontend: React/Vite, build en `/var/www/chatbot/frontend/dist`
+- Dominio: chat-bot.soluciones.uk
 
 ## Archivos de configuración
-- Nginx: /etc/nginx/sites-available/chatbot
-- Service: /etc/systemd/system/chatbot.service
-- Frontend dist: /var/www/portfolio/frontend/dist
+- Nginx: `nginx/sites-available/chat-bot.soluciones.uk` (versionado en este repo, se aplica con `sudo bash nginx/apply.sh`)
+- Service: `backend/chatbot.service` → `/etc/systemd/system/chatbot.service` (unit `chatbot.service`)
+- Frontend dist: `/var/www/chatbot/frontend/dist`
 
-## Rama actual
-- main y dev sincronizadas en GitHub
+## Ramas
+- Se trabaja en `dev`: commit en dev, `merge --ff-only` a main, push de ambas.
 
-## Nota
-- El chatbot service se configuró perofalta ejecutarlo en el servidor
+## Deploy
+- GitHub Actions `.github/workflows/deploy.yml` en push a `main`: pull en `/var/www/chatbot`, `uv sync --frozen` si cambia backend, `npm ci && npm run build` si cambia frontend, y `systemctl restart chatbot.service`.
+- El workflow no toca nginx: los cambios de nginx se aplican con `nginx/apply.sh`.
