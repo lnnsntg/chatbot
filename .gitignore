@@ -40,3 +40,6 @@ yarn-error.log
 .env
 .env.local
 
+
+# marcador de deploy (lo escribe .github/workflows/deploy.yml)
+.deployed-sha

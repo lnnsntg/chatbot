@@ -4,28 +4,14 @@ name: CI/CD Deploy Chatbot
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2 # necesario para comparar HEAD~1 vs HEAD
-
-      - name: Detectar cambios
-        id: changes
-        run: |
-          changed=$(git diff --name-only HEAD~1 HEAD)
-          echo "deps=$(echo "$changed" | grep -qE '^backend/(pyproject\.toml|uv\.lock)$' && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "backend=$(echo "$changed" | grep -qE '^backend/.*\.py$' && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "unit=$(echo "$changed" | grep -qE '^backend/chatbot\.service$' && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "frontend=$(echo "$changed" | grep -q '^frontend/' && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "nginx=$(echo "$changed" | grep -q '^nginx/' && echo true || echo false)" >> $GITHUB_OUTPUT
-
-      - name: Pull en el VPS
+      - name: Deploy en el VPS
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -34,82 +20,65 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           port: ${{ secrets.SSH_PORT}}
           script: |
+            set -e
             cd /var/www/chatbot
+
+            OLD=$(git rev-parse HEAD)
             git pull origin main
+            NEW=$(git rev-parse HEAD)
+            MARK=/var/www/chatbot/.deployed-sha
 
-      - name: Aplicar nginx (si cambió nginx)
-        if: steps.changes.outputs.nginx == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          port: ${{ secrets.SSH_PORT}}
-          script: |
-            bash /var/www/chatbot/nginx/apply.sh
+            # Base de comparacion: el ultimo SHA aplicado en este servidor.
+            # Si no hay marcador (primer deploy con este sistema) o el commit ya no
+            # existe, se aplica todo: es la unica forma de no dejar cambios sin desplegar
+            # cuando un push trae varios commits.
+            if [ -f "$MARK" ] && git cat-file -e "$(cat "$MARK")^{commit}" 2>/dev/null; then
+              BASE=$(cat "$MARK")
+              CHANGED=$(git diff --name-only "$BASE" "$NEW")
+            else
+              BASE=""
+              CHANGED="TODO"
+            fi
 
-      - name: Instalar unit de systemd (si cambió la unit)
-        if: steps.changes.outputs.unit == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          port: ${{ secrets.SSH_PORT}}
-          script: |
-            install -m 644 /var/www/chatbot/backend/chatbot.service /etc/systemd/system/chatbot.service
-            systemctl daemon-reload
+            echo "commit desplegado: $OLD -> $NEW (base de comparacion: ${BASE:-ninguna, se aplica todo})"
+            echo "--- cambios ---"
+            echo "$CHANGED"
 
-      - name: Sync Python deps (si cambió backend)
-        if: steps.changes.outputs.deps == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          port: ${{ secrets.SSH_PORT}}
-          script: |
-            cd /var/www/chatbot/backend
-            uv sync --frozen
+            if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -q '^nginx/'; then
+              echo "-> nginx"
+              bash nginx/apply.sh
+            fi
 
-      - name: Build frontend (si cambió frontend)
-        if: steps.changes.outputs.frontend == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          port: ${{ secrets.SSH_PORT}}
-          script: |
-            cd /var/www/chatbot/frontend
-            npm ci
-            npm run build
+            if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -qE '^backend/chatbot\.service$'; then
+              echo "-> unit de systemd"
+              install -m 644 backend/chatbot.service /etc/systemd/system/chatbot.service
+              systemctl daemon-reload
+              systemctl enable chatbot.service
+            fi
 
-      - name: Restart service (si cambió backend, deps o unit)
-        if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.deps == 'true' || steps.changes.outputs.unit == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          port: ${{ secrets.SSH_PORT}}
-          script: |
-            systemctl restart chatbot.service
+            if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -qE '^backend/(pyproject\.toml|uv\.lock)$'; then
+              echo "-> deps de python"
+              cd /var/www/chatbot/backend
+              uv sync --frozen
+              cd /var/www/chatbot
+            fi
 
-      - name: Health check (si se reinició)
-        if: steps.changes.outputs.backend == 'true' || steps.changes.outputs.deps == 'true' || steps.changes.outputs.unit == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          port: ${{ secrets.SSH_PORT}}
-          script: |
-            sleep 3
-            curl -fsS --unix-socket /run/chatbot.sock http://localhost/health
+            if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -q '^frontend/'; then
+              echo "-> build del frontend"
+              cd /var/www/chatbot/frontend
+              npm ci
+              npm run build
+              cd /var/www/chatbot
+            fi
+
+            if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -qE '^backend/.*\.py$|^backend/chatbot\.service$|^backend/(pyproject\.toml|uv\.lock)$'; then
+              echo "-> restart de chatbot.service"
+              systemctl restart chatbot.service
+              sleep 3
+              echo "-> health check"
+              curl -fsS --unix-socket /run/chatbot.sock http://localhost/health
+              echo
+            fi
+
+            echo "$NEW" > "$MARK"
+            echo "deploy OK: $NEW"
