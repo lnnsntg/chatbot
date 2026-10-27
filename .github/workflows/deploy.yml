@@ -23,6 +23,7 @@ jobs:
           echo "backend=$(echo "$changed" | grep -qE '^backend/.*\.py$' && echo true || echo false)" >> $GITHUB_OUTPUT
           echo "unit=$(echo "$changed" | grep -qE '^backend/chatbot\.service$' && echo true || echo false)" >> $GITHUB_OUTPUT
           echo "frontend=$(echo "$changed" | grep -q '^frontend/' && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "nginx=$(echo "$changed" | grep -q '^nginx/' && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Pull en el VPS
         uses: appleboy/ssh-action@v1
@@ -35,6 +36,18 @@ jobs:
           script: |
             cd /var/www/chatbot
             git pull origin main
+
+      - name: Aplicar nginx (si cambió nginx)
+        if: steps.changes.outputs.nginx == 'true'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          port: ${{ secrets.SSH_PORT}}
+          script: |
+            bash /var/www/chatbot/nginx/apply.sh
 
       - name: Instalar unit de systemd (si cambió la unit)
         if: steps.changes.outputs.unit == 'true'
