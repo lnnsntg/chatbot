@@ -31,6 +31,8 @@ MODEL = os.getenv("MODEL", "llama3.2:1b")
 CLOUD_API_KEY = os.getenv("CLOUD_API_KEY", "")
 CLOUD_MODEL = os.getenv("CLOUD_MODEL", "deepseek-v4.1-flash")
 CLOUD_API_URL = os.getenv("CLOUD_API_URL", "https://opencode.ai/zen/go/v1/chat/completions")
+# OpenCode Zen Go exige esta cabecera: sin ella responde 400 MissingSessionID
+CLOUD_SESSION = os.getenv("CLOUD_SESSION", "chatbot")
 
 
 # Modelo del mensaje
@@ -68,6 +70,7 @@ def get_cloud_response(prompt: str) -> str:
             headers={
                 "Authorization": f"Bearer {CLOUD_API_KEY}",
                 "Content-Type": "application/json",
+                "x-opencode-session": CLOUD_SESSION,
             },
             timeout=30,
         )
