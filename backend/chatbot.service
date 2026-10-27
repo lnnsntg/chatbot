@@ -6,9 +6,10 @@ After=network.target
 Type=notify
 User=root
 Group=www-data
-UMask=0007
+RuntimeDirectory=chatbot
+RuntimeDirectoryMode=0750
 WorkingDirectory=/var/www/chatbot/backend
-ExecStart=/var/www/chatbot/backend/.venv/bin/gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind unix:/run/chatbot.sock --umask 0007
+ExecStart=/var/www/chatbot/backend/.venv/bin/gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind unix:/run/chatbot/chatbot.sock
 Restart=always
 RestartSec=10
 Environment=PYTHONPATH=/var/www/chatbot/backend

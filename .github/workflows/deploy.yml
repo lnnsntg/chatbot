@@ -44,11 +44,6 @@ jobs:
             echo "--- cambios ---"
             echo "$CHANGED"
 
-            if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -q '^nginx/'; then
-              echo "-> nginx"
-              bash nginx/apply.sh
-            fi
-
             if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -qE '^backend/chatbot\.service$'; then
               echo "-> unit de systemd"
               install -m 644 backend/chatbot.service /etc/systemd/system/chatbot.service
@@ -71,13 +66,22 @@ jobs:
               cd /var/www/chatbot
             fi
 
+            # El servicio va antes que nginx: la unit crea RuntimeDirectory y el socket
+            # nuevo, y solo despues nginx puede apuntar a esa ruta sin dar 502.
             if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -qE '^backend/.*\.py$|^backend/chatbot\.service$|^backend/(pyproject\.toml|uv\.lock)$'; then
               echo "-> restart de chatbot.service"
               systemctl restart chatbot.service
               sleep 3
               echo "-> health check"
-              curl -fsS --unix-socket /run/chatbot.sock http://localhost/health
+              curl -fsS --unix-socket /run/chatbot/chatbot.sock http://localhost/health
               echo
+              # socket de la version anterior (fuera de RuntimeDirectory)
+              rm -f /run/chatbot.sock
+            fi
+
+            if [ "$CHANGED" = "TODO" ] || echo "$CHANGED" | grep -q '^nginx/'; then
+              echo "-> nginx"
+              bash nginx/apply.sh
             fi
 
             echo "$NEW" > "$MARK"

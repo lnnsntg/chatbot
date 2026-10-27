@@ -26,18 +26,20 @@
 
 ## Servicio y permisos
 
-- Unit `chatbot.service`: `User=root`, `Group=www-data`, `UMask=0007`.
-- Socket `/run/chatbot.sock`: `root:www-data` con modo `770`. El umask hay que pasárselo a gunicorn (`--umask 0007`): gunicorn hace su propio `os.umask(conf.umask)` al crear el socket y **sobreescribe** el `UMask` de systemd (default `0` = `777`).
-- nginx corre como `www-data`, así que entra en el socket por grupo. Ningún otro usuario local puede llamar a la API saltándose nginx.
+- `RuntimeDirectory=chatbot` con `RuntimeDirectoryMode=0750`: systemd crea `/run/chatbot` como `root:www-data` `0750` en cada arranque y lo borra al parar el servicio.
+- Gunicorn hace su `--bind unix:/run/chatbot/chatbot.sock` normal (sin `umask` ni `fd://`): el control de acceso lo hace el directorio, no el fichero.
+- nginx corre como `www-data` y entra por grupo. Ningún otro usuario local puede ni atravesar `/run/chatbot`.
+- `chatbot.service`: `User=root`, `Group=www-data`, `--workers 2`.
 - `.env` en el servidor: `600 root:root`, no está en git (`.gitignore`).
 - nginx solo sirve `frontend/dist`: el backend, `.env` y el `.git` no son accesibles por HTTP (probado: `/.env`, `/backend/.env`, `/.git/config` devuelven el `index.html` del SPA).
 
 ## Deploy
 
-- GitHub Actions `.github/workflows/deploy.yml` en push a `main`:
+- GitHub Actions `.github/workflows/deploy.yml` en push a `main` (o `workflow_dispatch`), en un solo paso SSH:
   - pull en `/var/www/chatbot` — siempre.
-  - instala la unit en `/etc/systemd/system/` + `daemon-reload` — solo si cambió `backend/chatbot.service`.
+  - la comparación de cambios es contra el último SHA desplegado (`.deployed-sha` en el servidor), no contra `HEAD~1`: así un push con varios commits no se salta nada. Si no hay marcador, aplica todo.
+  - instala la unit + `daemon-reload` — solo si cambió `backend/chatbot.service`.
   - `uv sync --frozen` — solo si cambió `pyproject.toml` o `uv.lock`.
   - `npm ci && npm run build` — solo si cambió `frontend/`.
-  - `systemctl restart chatbot.service` + health check por socket — solo si cambió `backend/*.py`, las deps o la unit. Un push de docs o solo frontend no reinicia el backend.
-- El workflow no toca nginx: los cambios de nginx se aplican con `nginx/apply.sh`.
+  - `systemctl restart chatbot.service` + health check por socket — solo si cambió `backend/*.py`, las deps o la unit.
+  - `nginx/apply.sh` — solo si cambió `nginx/`, y **después** del restart (el socket nuevo tiene que existir antes de que nginx apunte a él).
